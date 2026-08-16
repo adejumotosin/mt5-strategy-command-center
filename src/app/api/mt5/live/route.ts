@@ -1,6 +1,13 @@
 import { getLiveMt5State } from "@/lib/mt5-store";
+import { hasDashboardSession } from "@/lib/dashboard-auth";
 
 export async function GET() {
+  if (!await hasDashboardSession()) {
+    return Response.json({ error: "Unauthorized." }, {
+      status: 401,
+      headers: { "Cache-Control": "private, no-store, max-age=0" },
+    });
+  }
   try {
     const state = await getLiveMt5State();
     return Response.json(state, {

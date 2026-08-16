@@ -12,6 +12,7 @@ A focused trading dashboard for the refined USTEC and EURGBP playbook. It combin
 - **Trade journal** — browser-persisted entries for USTEC and EURGBP with setup, result, R multiple, plan adherence, and notes.
 - **Analytics** — win rate, expectancy, profit factor, drawdown, adherence, equity curve, and per-instrument breakdowns.
 - **MT5 bridge** — authenticated ingestion endpoints, durable account/symbol/deal state, live dashboard polling, and downloadable `StrategyBridgeEA.mq5` source for MetaQuotes-Demo.
+- **Private access** — password-gated dashboard sessions with signed, HTTP-only cookies and database-backed failed-login throttling.
 
 ## Instruments and timing
 
@@ -37,6 +38,8 @@ Open [http://localhost:3000](http://localhost:3000).
 Before enabling MT5 ingestion, replace `MT5_BRIDGE_TOKEN` with a long random value. Never commit `.env.local` or paste MetaTrader credentials into the dashboard.
 
 Connect Neon Postgres through the Vercel Marketplace so Vercel supplies `DATABASE_URL`. The application creates its three `sentry_mt5_*` tables automatically on the first live request.
+
+Set `DASHBOARD_PASSWORD` to a strong, unique password in Vercel. A successful login creates a signed, HTTP-only session cookie that expires after 12 hours. Five failed attempts in 15 minutes temporarily block that client for 15 minutes.
 
 ## Quality checks
 
@@ -68,7 +71,9 @@ All MT5 routes require `Authorization: Bearer <MT5_BRIDGE_TOKEN>` and validate t
 | `POST` | `/api/mt5/heartbeat` | Account status and symbol specifications |
 | `POST` | `/api/mt5/snapshot` | Current USTEC and EURGBP ticks |
 | `POST` | `/api/mt5/trades` | New MT5 deal notifications |
-| `GET` | `/api/mt5/live` | Latest persisted account, quote, and deal state |
+| `GET` | `/api/mt5/live` | Latest persisted account, quote, and deal state; dashboard session required |
+| `POST` | `/api/auth/login` | Verify the dashboard password and create a signed session |
+| `POST` | `/api/auth/logout` | Expire the current dashboard session |
 
 Heartbeat, quote, and deal payloads are authenticated, fully validated, and saved to Neon. Quote rows are updated in place, which preserves the current live state without creating a permanent database row every five seconds. MT5 deals are stored once by ticket number.
 
@@ -77,7 +82,7 @@ Heartbeat, quote, and deal payloads are authenticated, fully validated, and save
 The application is designed for Vercel's Next.js runtime.
 
 1. Import the GitHub repository into Vercel.
-2. Add `MT5_BRIDGE_TOKEN` to Production, Preview, and Development as appropriate.
+2. Add `MT5_BRIDGE_TOKEN` and `DASHBOARD_PASSWORD` to Production, Preview, and Development as appropriate.
 3. Connect Neon Postgres and confirm that `DATABASE_URL` is available to the project.
 4. Deploy.
 5. Put the final HTTPS origin into both MT5's WebRequest allowlist and the EA's `DashboardUrl` input.

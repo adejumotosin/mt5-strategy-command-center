@@ -60,6 +60,11 @@ export function DashboardShell() {
     setMobileOpen(false);
   };
 
+  const signOut = async () => {
+    const response = await fetch("/api/auth/logout", { method: "POST" });
+    if (response.ok) window.location.replace("/login");
+  };
+
   const addTrade = (trade: TradeRecord) => setTrades((current) => [...current, trade]);
   const deleteTrade = (id: string) => setTrades((current) => current.filter((trade) => trade.id !== id));
   const setupStatus = getSetupStatus(rules);
@@ -148,6 +153,7 @@ export function DashboardShell() {
           <div className="topbar-actions">
             <span className={`connection-pill ${mt5Live ? "connection-pill--live" : ""}`}><i/> {connectionLabel}</span>
             <button className="icon-button" onClick={() => navigate("mt5")} title="Open MT5 connection" type="button"><Icon name="plug"/></button>
+            <button className="logout-button" onClick={signOut} type="button">Sign out</button>
           </div>
         </header>
         <main>{content}</main>
