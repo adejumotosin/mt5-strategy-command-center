@@ -29,6 +29,10 @@ export function useMt5Live() {
           cache: "no-store",
           signal: controller.signal,
         });
+        if (response.status === 401) {
+          window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+          return;
+        }
         if (!response.ok) throw new Error(`Live state returned ${response.status}.`);
         const nextState = await response.json() as Mt5LiveState;
         if (active) setState(nextState);
