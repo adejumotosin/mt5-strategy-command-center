@@ -4,7 +4,7 @@ import { MiniChart } from "@/components/mini-chart";
 import { SessionClock } from "@/components/session-clock";
 import { instrumentData } from "@/lib/demo-data";
 import { formatNumber, summarizeTrades } from "@/lib/strategy";
-import type { InstrumentKey, SetupStatus, TradeRecord } from "@/lib/types";
+import type { InstrumentKey, Mt5LiveState, SetupStatus, TradeRecord } from "@/lib/types";
 
 const ustecCurve = [44, 49, 46, 54, 51, 60, 63, 58, 66, 72, 69, 81, 78, 86, 93, 89, 99];
 const eurGbpCurve = [88, 84, 86, 81, 78, 80, 74, 71, 73, 67, 64, 60, 63, 57, 54, 50, 47];
@@ -15,6 +15,7 @@ type CommandCenterProps = {
   onOpenSetup: () => void;
   setupStatus: SetupStatus;
   trades: TradeRecord[];
+  live: Mt5LiveState;
 };
 
 export function CommandCenter({
@@ -23,8 +24,19 @@ export function CommandCenter({
   onOpenSetup,
   setupStatus,
   trades,
+  live,
 }: CommandCenterProps) {
   const market = instrumentData[instrument];
+  const liveQuote = live.symbols.find((symbol) => symbol.name === instrument);
+  const hasLiveQuote = live.connection === "live" && Boolean(liveQuote);
+  const quotePrice = hasLiveQuote && liveQuote ? liveQuote.bid : market.price;
+  const spread = hasLiveQuote && liveQuote
+    ? instrument === "EURGBP"
+      ? `${formatNumber((liveQuote.ask - liveQuote.bid) * 10_000, 1)} pip`
+      : `${formatNumber(liveQuote.ask - liveQuote.bid, 1)} pts`
+    : market.spread;
+  const riskEquity = live.account?.equity ?? 10_000;
+  const riskCurrency = live.account?.currency ?? "USD";
   const stats = summarizeTrades(trades);
   const weeklyTrades = Math.min(trades.length, 4);
   const statusLabel = setupStatus === "valid" ? "Valid trade" : setupStatus === "blocked" ? "No trade" : "Developing";
@@ -41,7 +53,7 @@ export function CommandCenter({
       </section>
 
       <section className="metrics-grid">
-        <MetricCard icon="shield" label="Risk per trade" value="0.50%" detail="$50.00 on $10,000 equity" tone="mint" />
+        <MetricCard icon="shield" label="Risk per trade" value="0.50%" detail={`${riskCurrency} ${formatNumber(riskEquity * 0.005, 2)} on ${formatNumber(riskEquity, 2)} equity`} tone="mint" />
         <MetricCard icon="journal" label="Weekly allowance" value={`${weeklyTrades} / 4`} detail={`${Math.max(0, 4 - weeklyTrades)} trade slots remaining`} tone="blue" />
         <MetricCard icon="analytics" label="Expectancy" value={`${formatNumber(stats.expectancy)}R`} detail={`${formatNumber(stats.winRate, 0)}% observed win rate`} tone="amber" />
         <MetricCard icon="warning" label="Max drawdown" value={`${formatNumber(stats.maxDrawdown)}R`} detail="4.00R monthly lock threshold" />
@@ -63,20 +75,22 @@ export function CommandCenter({
                 </button>
               ))}
             </div>
-            <span className="data-badge"><span /> Demo feed</span>
+            <span className={`data-badge ${hasLiveQuote ? "data-badge--live" : ""}`}><span /> {hasLiveQuote ? "Live MT5" : "Demo fallback"}</span>
           </div>
 
           <div className="quote-row">
             <div>
-              <p>{market.market}</p>
-              <strong>{instrument === "EURGBP" ? market.price.toFixed(5) : formatNumber(market.price, 1)}</strong>
-              <span className={market.change >= 0 ? "positive" : "negative"}>
-                {market.change >= 0 ? "+" : ""}{market.change}% today
-              </span>
+              <p>{hasLiveQuote ? `${instrument} · ${live.account?.server ?? "MetaTrader 5"}` : market.market}</p>
+              <strong>{instrument === "EURGBP" ? quotePrice.toFixed(5) : formatNumber(quotePrice, 1)}</strong>
+              {hasLiveQuote ? <span className="positive">Live bid</span> : (
+                <span className={market.change >= 0 ? "positive" : "negative"}>
+                  {market.change >= 0 ? "+" : ""}{market.change}% today
+                </span>
+              )}
             </div>
             <div className="quote-meta">
               <span><small>4H bias</small><b className={market.bias === "Bullish" ? "positive" : "negative"}>{market.bias}</b></span>
-              <span><small>Spread</small><b>{market.spread}</b></span>
+              <span><small>Spread</small><b>{spread}</b></span>
               <span><small>5M ATR</small><b>{market.atr}</b></span>
             </div>
           </div>

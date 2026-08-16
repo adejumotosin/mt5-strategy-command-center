@@ -126,6 +126,7 @@ a { color: inherit; text-decoration: none; }
 .sidebar-account > span { align-items: center; background: #263a33; border: 1px solid #385247; border-radius: 50%; display: flex; font-size: 10px; font-weight: 700; height: 34px; justify-content: center; width: 34px; }
 .sidebar-account div { flex: 1; }
 .sidebar-account > i { background: #53625d; border-radius: 50%; height: 6px; width: 6px; }
+.sidebar-account > i.is-live { background: var(--mint); box-shadow: 0 0 10px rgba(117, 242, 184, .65); }
 
 .app-content { margin-left: var(--sidebar); min-height: 100vh; }
 .topbar { align-items: center; backdrop-filter: blur(14px); background: rgba(7, 16, 14, .83); border-bottom: 1px solid var(--line-soft); display: flex; height: 62px; justify-content: space-between; padding: 0 30px; position: sticky; top: 0; z-index: 30; }
@@ -136,6 +137,8 @@ a { color: inherit; text-decoration: none; }
 .topbar-actions { align-items: center; display: flex; gap: 9px; }
 .connection-pill { align-items: center; background: #111e1a; border: 1px solid var(--line); border-radius: 99px; color: var(--muted-strong); display: flex; font-size: 10px; gap: 7px; padding: 7px 11px; }
 .connection-pill i { background: var(--amber); border-radius: 50%; height: 6px; width: 6px; }
+.connection-pill--live { border-color: rgba(117, 242, 184, .25); color: var(--mint); }
+.connection-pill--live i { background: var(--mint); box-shadow: 0 0 10px rgba(117, 242, 184, .65); }
 .mobile-menu { display: none; }
 
 main { padding: 30px clamp(20px, 3vw, 44px) 42px; }
@@ -170,6 +173,8 @@ main { padding: 30px clamp(20px, 3vw, 44px) 42px; }
 .instrument-tabs button.is-active, .segmented-control button.is-active { background: #1a2b26; border-color: #2b443a; color: var(--text); }
 .data-badge { align-items: center; background: #121f1b; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); display: flex; font-size: 9px; gap: 6px; padding: 7px 10px; }
 .data-badge > span { background: var(--amber); border-radius: 50%; height: 5px; width: 5px; }
+.data-badge--live { border-color: rgba(117, 242, 184, .25); color: var(--mint); }
+.data-badge--live > span { background: var(--mint); box-shadow: 0 0 8px rgba(117, 242, 184, .55); }
 .quote-row { align-items: flex-end; display: flex; justify-content: space-between; padding: 24px 5px 8px; }
 .quote-row p { color: var(--muted); font-size: 10px; margin: 0 0 6px; }
 .quote-row > div > strong { display: inline-block; font-size: clamp(29px, 3.1vw, 44px); font-weight: 520; letter-spacing: -.045em; }
