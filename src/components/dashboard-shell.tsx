@@ -8,6 +8,7 @@ import { Mt5Connection } from "@/components/mt5-connection";
 import { RiskCalculator } from "@/components/risk-calculator";
 import { SetupValidator } from "@/components/setup-validator";
 import { TradeJournal } from "@/components/trade-journal";
+import { useMt5Live } from "@/hooks/use-mt5-live";
 import { defaultRules, seedTrades } from "@/lib/demo-data";
 import { getSetupStatus } from "@/lib/strategy";
 import type { InstrumentKey, TradeRecord } from "@/lib/types";
@@ -32,6 +33,7 @@ export function DashboardShell() {
   const [trades, setTrades] = useState<TradeRecord[]>(seedTrades);
   const [storageReady, setStorageReady] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { loading: mt5Loading, state: mt5State } = useMt5Live();
 
   useEffect(() => {
     const hydrateStorage = () => {
@@ -77,7 +79,7 @@ export function DashboardShell() {
       content = <AnalyticsView trades={trades} />;
       break;
     case "mt5":
-      content = <Mt5Connection />;
+      content = <Mt5Connection state={mt5State} />;
       break;
     default:
       content = (
@@ -87,9 +89,23 @@ export function DashboardShell() {
           onOpenSetup={() => navigate("setup")}
           setupStatus={setupStatus}
           trades={trades}
+          live={mt5State}
         />
       );
   }
+
+  const mt5Live = mt5State.connection === "live";
+  const connectionLabel = mt5Loading
+    ? "Checking MT5"
+    : mt5State.connection === "live"
+      ? "MT5 live"
+      : mt5State.connection === "stale"
+        ? "MT5 stale"
+        : mt5State.connection === "unconfigured"
+          ? "Storage unavailable"
+          : mt5State.connection === "error"
+            ? "MT5 error"
+            : "MT5 offline";
 
   return (
     <div className="app-shell">
@@ -109,7 +125,7 @@ export function DashboardShell() {
           <span className="nav-label nav-label--system">System</span>
           {navigation.slice(5).map((item) => (
             <button className={activeView === item.id ? "is-active" : ""} key={item.id} onClick={() => navigate(item.id)} type="button">
-              <Icon name={item.icon} /><span>{item.label}</span><i className="nav-status nav-status--offline"/>
+              <Icon name={item.icon} /><span>{item.label}</span><i className={`nav-status nav-status--${mt5Live ? "valid" : "offline"}`}/>
             </button>
           ))}
         </nav>
@@ -119,7 +135,7 @@ export function DashboardShell() {
           <div><small>Risk guard</small><strong>All limits active</strong></div>
         </div>
         <div className="sidebar-account">
-          <span>OA</span><div><strong>Oluwatosin</strong><small>MetaQuotes-Demo</small></div><i/>
+          <span>OA</span><div><strong>Oluwatosin</strong><small>{mt5State.account?.server ?? "MetaQuotes-Demo"}</small></div><i className={mt5Live ? "is-live" : ""}/>
         </div>
       </aside>
 
@@ -130,7 +146,7 @@ export function DashboardShell() {
           <button aria-label="Open navigation" className="mobile-menu" onClick={() => setMobileOpen(true)} type="button"><Icon name="menu"/></button>
           <div className="topbar-context"><span>LIVE WORKSPACE</span><b>/</b><strong>{navigation.find((item) => item.id === activeView)?.label}</strong></div>
           <div className="topbar-actions">
-            <span className="connection-pill"><i/> Demo mode</span>
+            <span className={`connection-pill ${mt5Live ? "connection-pill--live" : ""}`}><i/> {connectionLabel}</span>
             <button className="icon-button" onClick={() => navigate("mt5")} title="Open MT5 connection" type="button"><Icon name="plug"/></button>
           </div>
         </header>

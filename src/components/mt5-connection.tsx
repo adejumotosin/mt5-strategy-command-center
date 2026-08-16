@@ -2,9 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
+import type { Mt5LiveState } from "@/lib/types";
 
-export function Mt5Connection() {
+type Mt5ConnectionProps = { state: Mt5LiveState };
+
+export function Mt5Connection({ state }: Mt5ConnectionProps) {
   const [baseUrl, setBaseUrl] = useState("https://your-dashboard.vercel.app");
+  const connected = state.connection === "live";
+  const statusLabel = connected ? "Connected" : state.connection === "stale" ? "Stale" : "Awaiting EA";
+  const terminalStatus = connected ? "CONNECTED · READ ONLY" : state.connection === "stale" ? "CONNECTION STALE" : "NOT CONNECTED";
+  const terminalMessage = connected
+    ? `Receiving ${state.symbols.map((symbol) => symbol.name).join(" and ")} telemetry through the secure bridge.`
+    : state.connection === "stale"
+      ? "The last heartbeat is older than 30 seconds. Confirm MT5 and Algo Trading are running."
+      : "Install or enable the read-only Expert Advisor to begin secure synchronisation.";
 
   useEffect(() => {
     const timer = window.setTimeout(() => setBaseUrl(window.location.origin), 0);
@@ -13,16 +24,16 @@ export function Mt5Connection() {
 
   return (
     <div className="view-stack">
-      <section className="page-heading"><div><span className="eyebrow">Terminal bridge</span><h1>MetaTrader 5 connection</h1><p>Connect MetaQuotes-Demo without sharing your login or trading password.</p></div><span className="status-pill status-pill--warning"><span className="market-dot"/>Awaiting EA</span></section>
+      <section className="page-heading"><div><span className="eyebrow">Terminal bridge</span><h1>MetaTrader 5 connection</h1><p>Connect MetaQuotes-Demo without sharing your login or trading password.</p></div><span className={`status-pill ${connected ? "status-pill--safe" : "status-pill--warning"}`}><span className="market-dot"/>{statusLabel}</span></section>
       <section className="connection-grid">
         <article className="panel terminal-card">
           <div className="terminal-screen">
             <div className="terminal-top"><span/><span/><span/><b>StrategyBridgeEA</b></div>
             <div className="terminal-body">
               <span className="terminal-logo">5</span>
-              <div><small>TERMINAL STATUS</small><strong>NOT CONNECTED</strong><p>Install the read-only Expert Advisor to begin secure synchronisation.</p></div>
+              <div><small>TERMINAL STATUS</small><strong className={connected ? "positive" : ""}>{terminalStatus}</strong><p>{terminalMessage}</p></div>
             </div>
-            <div className="terminal-footer"><span>Server: MetaQuotes-Demo</span><span>Mode: Read only</span></div>
+            <div className="terminal-footer"><span>Server: {state.account?.server ?? "MetaQuotes-Demo"}</span><span>{state.account?.maskedId ? `Account: ${state.account.maskedId}` : "Mode: Read only"}</span></div>
           </div>
           <a className="primary-button download-button" download href="/StrategyBridgeEA.mq5"><Icon name="download"/> Download MQL5 source</a>
           <p className="download-note">Compile this source in MetaEditor to create `StrategyBridgeEA.ex5`.</p>
@@ -39,8 +50,8 @@ export function Mt5Connection() {
         </article>
         <article className="panel mapping-card">
           <div className="panel-header"><div><span className="eyebrow">Broker contract map</span><h2>MetaQuotes-Demo</h2></div><Icon name="plug"/></div>
-          <div className="mapping-row"><span className="trade-mark trade-mark--ustec">U</span><div><small>Dashboard</small><strong>US100</strong></div><Icon name="arrow"/><div><small>MT5 symbol</small><strong>USTEC</strong></div><span className="process-pass"><Icon name="check"/>Found</span></div>
-          <div className="mapping-row"><span className="trade-mark trade-mark--eurgbp">E</span><div><small>Dashboard</small><strong>EUR/GBP</strong></div><Icon name="arrow"/><div><small>MT5 symbol</small><strong>EURGBP</strong></div><span className="process-pass"><Icon name="check"/>Found</span></div>
+          <div className="mapping-row"><span className="trade-mark trade-mark--ustec">U</span><div><small>Dashboard</small><strong>US100</strong></div><Icon name="arrow"/><div><small>MT5 symbol</small><strong>USTEC</strong></div><span className="process-pass"><Icon name="check"/>{state.symbols.some((symbol) => symbol.name === "USTEC") ? "Live" : "Found"}</span></div>
+          <div className="mapping-row"><span className="trade-mark trade-mark--eurgbp">E</span><div><small>Dashboard</small><strong>EUR/GBP</strong></div><Icon name="arrow"/><div><small>MT5 symbol</small><strong>EURGBP</strong></div><span className="process-pass"><Icon name="check"/>{state.symbols.some((symbol) => symbol.name === "EURGBP") ? "Live" : "Found"}</span></div>
         </article>
         <article className="panel security-card">
           <Icon name="shield"/><div><span className="eyebrow">Security boundary</span><h2>Your credentials stay in MT5</h2><p>The bridge sends market and trade records only. It does not transmit your password and contains no trade-execution function.</p></div>

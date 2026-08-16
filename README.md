@@ -1,6 +1,6 @@
 # Sentry Trading Command OS
 
-A focused trading dashboard for the refined USTEC and EURGBP playbook. It combines pre-trade validation, broker-aware risk sizing, a local trade journal, performance analytics, session timing, and a read-only MetaTrader 5 bridge.
+A focused trading dashboard for the refined USTEC and EURGBP playbook. It combines pre-trade validation, broker-aware risk sizing, a local trade journal, performance analytics, session timing, durable Neon storage, and a read-only MetaTrader 5 bridge.
 
 > This software is a decision-support and journaling tool, not financial advice. The included EA cannot place, modify, or close trades.
 
@@ -11,7 +11,7 @@ A focused trading dashboard for the refined USTEC and EURGBP playbook. It combin
 - **Position calculator** — calculates risk amount, stop distance, broker volume, and a 4R target while enforcing a 0.5% risk ceiling.
 - **Trade journal** — browser-persisted entries for USTEC and EURGBP with setup, result, R multiple, plan adherence, and notes.
 - **Analytics** — win rate, expectancy, profit factor, drawdown, adherence, equity curve, and per-instrument breakdowns.
-- **MT5 bridge** — authenticated ingestion endpoints plus downloadable `StrategyBridgeEA.mq5` source for MetaQuotes-Demo.
+- **MT5 bridge** — authenticated ingestion endpoints, durable account/symbol/deal state, live dashboard polling, and downloadable `StrategyBridgeEA.mq5` source for MetaQuotes-Demo.
 
 ## Instruments and timing
 
@@ -35,6 +35,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 Before enabling MT5 ingestion, replace `MT5_BRIDGE_TOKEN` with a long random value. Never commit `.env.local` or paste MetaTrader credentials into the dashboard.
+
+Connect Neon Postgres through the Vercel Marketplace so Vercel supplies `DATABASE_URL`. The application creates its three `sentry_mt5_*` tables automatically on the first live request.
 
 ## Quality checks
 
@@ -66,8 +68,9 @@ All MT5 routes require `Authorization: Bearer <MT5_BRIDGE_TOKEN>` and validate t
 | `POST` | `/api/mt5/heartbeat` | Account status and symbol specifications |
 | `POST` | `/api/mt5/snapshot` | Current USTEC and EURGBP ticks |
 | `POST` | `/api/mt5/trades` | New MT5 deal notifications |
+| `GET` | `/api/mt5/live` | Latest persisted account, quote, and deal state |
 
-The current release deliberately separates the browser demo data from bridge ingestion. API requests are authenticated and validated, but durable multi-device storage is not yet enabled. Adding a managed Postgres store is the next production step before treating MT5 telemetry as persistent.
+Heartbeat, quote, and deal payloads are authenticated, fully validated, and saved to Neon. Quote rows are updated in place, which preserves the current live state without creating a permanent database row every five seconds. MT5 deals are stored once by ticket number.
 
 ## Deployment
 
@@ -75,12 +78,13 @@ The application is designed for Vercel's Next.js runtime.
 
 1. Import the GitHub repository into Vercel.
 2. Add `MT5_BRIDGE_TOKEN` to Production, Preview, and Development as appropriate.
-3. Deploy.
-4. Put the final HTTPS origin into both MT5's WebRequest allowlist and the EA's `DashboardUrl` input.
+3. Connect Neon Postgres and confirm that `DATABASE_URL` is available to the project.
+4. Deploy.
+5. Put the final HTTPS origin into both MT5's WebRequest allowlist and the EA's `DashboardUrl` input.
 
 ## Safety boundaries
 
 - Maximum planned risk is fixed at **0.5% per trade**.
 - The EA contains no `OrderSend`, position modification, or close functions.
 - Strategy validation and position sizing are decision support; orders remain manual in MetaTrader 5.
-- Journal data currently stays in the user's browser via versioned `localStorage`.
+- Manually entered journal notes remain in the user's browser via versioned `localStorage`; MT5 account, symbol, and deal telemetry is stored in Neon.
